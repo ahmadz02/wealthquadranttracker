@@ -39,7 +39,6 @@
     </div>
     <button class="auth-btn" id="authSubmit" onclick="WQAuth.submitAuth()">Login</button>
     <div class="auth-msg" id="authMsg"></div>
-    <div class="approval-list" id="approvalList" style="display:none"></div>
   </div>
 </div>
 <div id="appShell">
@@ -52,6 +51,14 @@
     <button class="hdr-btn reset-year-btn" onclick="WQAuth.signOut()">Logout</button>
   </div>
 
+  <!-- APPROVAL PANEL -->
+  <div id="approvalPanel" style="display:none; background:var(--card); border-bottom:1px solid var(--border); padding:14px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:700;">Pending Approvals</span>
+      <button class="small-btn" onclick="document.getElementById('approvalPanel').style.display='none'">Close</button>
+    </div>
+    <div class="approval-list" id="approvalList"></div>
+  </div>
 
 <!-- COPY MODAL -->
 <div class="modal-overlay hidden" id="copyModal">

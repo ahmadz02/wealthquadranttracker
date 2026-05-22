@@ -109,16 +109,39 @@ async function rejectUser(userId){
   loadPendingApprovals();
 }
 
-  async function approveUser(id){ await WQSupabase.from('profiles').update({ status:'approved', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); await loadUserSelector(); }
-  async function rejectUser(id){ await WQSupabase.from('profiles').update({ status:'rejected', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); }
-  async function signOut(){ await WQSupabase.auth.signOut(); location.reload(); }
+  async function loadPendingApprovals(){
+    const panel = document.getElementById('approvalPanel');
+    const list  = document.getElementById('approvalList');
+    const { data, error } = await WQSupabase.from('profiles')
+      .select('id, username, email, role')
+      .eq('status', 'pending')
+      .order('created_at');
+    if (error) {
+      list.innerHTML = `<p style="color:var(--red);font-size:12px">${error.message}</p>`;
+    } else if (!data || data.length === 0) {
+      list.innerHTML = '<p style="font-size:12px;color:var(--text2);padding:6px 0;">No pending approvals.</p>';
+    } else {
+      list.innerHTML = data.map(u => `
+        <div class="approval-item">
+          <div>
+            <div style="font-size:13px;font-weight:600">${u.username || u.email}</div>
+            <div style="font-size:11px;color:var(--text2)">${u.email} · ${u.role}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="small-btn approve" onclick="WQAuth.approveUser('${u.id}')">Approve</button>
+            <button class="small-btn reject" onclick="WQAuth.rejectUser('${u.id}')">Reject</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    panel.style.display = 'block';
+  }
+
+  async function signOut(){
+    await WQSupabase.auth.signOut();
+    location.reload();
+  }
 
   WQSupabase.auth.getUser().then(({data}) => { if (data?.user) hydrate(data.user).catch(e => setMsg(e.message,'error')); });
   return { showAuthMode, submitAuth, loadPendingApprovals, approveUser, rejectUser, switchViewedUser, signOut };
 })();
-
-window.WQAuth = {
-  loadPendingApprovals,
-  approveUser,
-  rejectUser
-};
