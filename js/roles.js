@@ -53,6 +53,8 @@ window.WQAuth = (() => {
       await loadUserSelector();
     } else {
       document.getElementById('adminPanel').classList.remove('show');
+      document.getElementById('premiumPanel').classList.add('show');
+      document.getElementById('premiumUserChip').textContent = `${profile.username} · ${profile.role}`;
       await WQStorage.setActiveUser(profile.id);
       window.WQApp.initApp();
     }

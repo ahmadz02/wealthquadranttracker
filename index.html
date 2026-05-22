@@ -51,6 +51,12 @@
     <button class="hdr-btn reset-year-btn" onclick="WQAuth.signOut()">Logout</button>
   </div>
 
+  <!-- PREMIUM USER PANEL -->
+  <div class="premium-panel" id="premiumPanel">
+    <span class="user-chip" id="premiumUserChip"></span>
+    <button class="hdr-btn reset-year-btn" onclick="WQAuth.signOut()">Logout</button>
+  </div>
+
   <!-- APPROVAL PANEL -->
   <div id="approvalPanel" style="display:none; background:var(--card); border-bottom:1px solid var(--border); padding:14px 16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -148,6 +154,10 @@
         <div class="ratio-row">
           <span class="ratio-name">Saving Ratio <span style="font-size:10px;color:var(--text3)">(Nett Inc−Exp+Saving)/Nett Inc</span></span>
           <span class="ratio-val" id="ratio-saving">—</span>
+        </div>
+        <div class="ratio-row">
+          <span class="ratio-name">Basic Liquidity Ratio <span style="font-size:10px;color:var(--text3)">(Cash/Cash Equiv)/(Exp−Saving)</span></span>
+          <span class="ratio-val" id="ratio-liquidity">—</span>
         </div>
         <div class="ratio-row">
           <span class="ratio-name">Debt Service Ratio <span style="font-size:10px;color:var(--text3)">(Mortgage+Non-Mtg)/Nett Income</span></span>

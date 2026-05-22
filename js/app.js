@@ -588,6 +588,9 @@ function updateAnalyticsMonth(month){
   rw.textContent=wr; rw.className='ratio-val '+(parseFloat(wr)>1?'ratio-good':parseFloat(wr)>0?'ratio-warn':'ratio-bad');
   const rs=document.getElementById('ratio-saving');
   rs.textContent=sr; rs.className='ratio-val '+(parseFloat(sr)>=20?'ratio-good':parseFloat(sr)>=10?'ratio-warn':'ratio-bad');
+  const blr=d1>0?(ast.cash/d1).toFixed(2):'—';
+  const rbl=document.getElementById('ratio-liquidity');
+  rbl.textContent=blr; rbl.className='ratio-val '+(parseFloat(blr)>=3?'ratio-good':parseFloat(blr)>=1?'ratio-warn':'ratio-bad');
   const rd=document.getElementById('ratio-dsr');
   rd.textContent=dsr; rd.className='ratio-val '+(parseFloat(dsr)<=30?'ratio-good':parseFloat(dsr)<=40?'ratio-warn':'ratio-bad');
   renderExpensePie(exp);
