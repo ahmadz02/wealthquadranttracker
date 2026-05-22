@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wealth Quadrant Tracker</title>
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="auth-page" id="authPage">
+  <div class="auth-card">
+    <div class="auth-title">Wealth Quadrant Access</div>
+    <div class="auth-sub">Create an account or login. New Superadmin and Premium User accounts require approval by an existing Superadmin.</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="loginTab" onclick="WQAuth.showAuthMode('login')">Login</button>
+      <button class="auth-tab" id="signupTab" onclick="WQAuth.showAuthMode('signup')">Create Account</button>
+    </div>
+    <div class="auth-field" id="usernameWrap" style="display:none">
+      <label>Username</label>
+      <input id="authUsername" placeholder="e.g. ali_wq">
+    </div>
+    <div class="auth-field">
+      <label>Email</label>
+      <input id="authEmail" type="email" placeholder="you@email.com">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+    </div>
+    <div class="auth-field" id="roleWrap" style="display:none">
+      <label>Requested Role</label>
+      <select id="authRole">
+        <option value="premium">Premium User</option>
+        <option value="superadmin">Superadmin</option>
+      </select>
+    </div>
+    <button class="auth-btn" id="authSubmit" onclick="WQAuth.submitAuth()">Login</button>
+    <div class="auth-msg" id="authMsg"></div>
+    <div class="approval-list" id="approvalList" style="display:none"></div>
+  </div>
+</div>
+<div id="appShell">
+  <div class="admin-panel" id="adminPanel">
+    <strong>Superadmin View</strong>
+    <span class="user-chip" id="currentUserChip"></span>
+    <label style="font-size:12px;color:var(--text2);font-weight:700">Viewing user:</label>
+    <select id="adminUserSelector" onchange="WQAuth.switchViewedUser(this.value)"></select>
+    <button class="hdr-btn" onclick="WQAuth.loadPendingApprovals()">Pending approvals</button>
+    <button class="hdr-btn reset-year-btn" onclick="WQAuth.signOut()">Logout</button>
+  </div>
+
+
+<!-- COPY MODAL -->
+<div class="modal-overlay hidden" id="copyModal">
+  <div class="modal-box">
+    <div class="modal-title" id="copyModalTitle">Copy from previous month</div>
+    <div class="modal-sub">Select a month to copy all data from. This will replace the current month's data.</div>
+    <div class="prev-month-list" id="prevMonthList"></div>
+    <button class="modal-cancel" onclick="closeCopyModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HIDDEN FILE INPUT -->
+<input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<div class="app-header">
+  <div class="app-title">💰 Wealth Quadrant Tracker</div>
+  <div class="year-control">
+    <button class="year-btn" onclick="changeYear(-1)">‹</button>
+    <div class="year-display" id="yearDisplay">2025</div>
+    <button class="year-btn" onclick="changeYear(1)">›</button>
+    <button class="hdr-btn reset-year-btn" onclick="resetYear()" title="Clear all data for this year">🗑 Reset Data</button>
+  </div>
+  <div class="header-actions">
+    <button class="hdr-btn export" onclick="exportData()">⬇ Export</button>
+    <button class="hdr-btn import-btn" onclick="document.getElementById('importFileInput').click()">⬆ Import</button>
+  </div>
+  <div class="nav-tabs-top">
+    <div class="nav-tab-top active" id="navTracker" onclick="showPage('tracker',this)">📅 Tracker</div>
+    <div class="nav-tab-top" id="navAnalytics" onclick="showPage('analytics',this)">📊 Analytics</div>
+  </div>
+</div>
+
+<!-- TRACKER PAGE -->
+<div class="page active months-body-pad" id="page-tracker">
+  <div class="months-page">
+    <div class="months-grid" id="monthsGrid"></div>
+  </div>
+  <div class="bottom-area" id="bottomArea" style="display:none;">
+    <div class="tabs-bar" id="tabsBar"></div>
+    <div class="tab-panel-area" id="tabPanelArea"></div>
+  </div>
+</div>
+
+<!-- ANALYTICS PAGE -->
+<div class="page" id="page-analytics">
+  <div class="analytics-page">
+    <div class="analytics-header-row">
+      <div class="analytics-title">Analytics</div>
+      <button class="print-btn" onclick="doPrint()">🖨 Print / Save PDF</button>
+    </div>
+    <div class="analytics-sub">Monthly Snapshot for <span id="analyticsMonthYear">— —</span></div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Segment 1 — Monthly Snapshot</div>
+    <div class="analytics-month-selector" id="monthPills"></div>
+    <!-- SUMMARY METRICS -->
+    <div class="summary-metrics-row" id="summaryMetrics">
+      <div class="summary-metric-card cashflow-card">
+        <div class="sm-label">Cashflow</div>
+        <div class="sm-formula">Income − Expenses + Saving/Inv</div>
+        <div class="sm-value" id="sm-cashflow">RM 0.00</div>
+      </div>
+      <div class="summary-metric-card surplus-card">
+        <div class="sm-label">Surplus / Deficit</div>
+        <div class="sm-formula">Income − Expenses</div>
+        <div class="sm-value" id="sm-surplus">RM 0.00</div>
+      </div>
+      <div class="summary-metric-card networth-card">
+        <div class="sm-label">Net Worth</div>
+        <div class="sm-formula">Assets − Liabilities</div>
+        <div class="sm-value" id="sm-networth">RM 0.00</div>
+      </div>
+    </div>
+
+    <div class="analytics-grid">
+      <div class="analytics-card full-width">
+        <div class="analytics-card-title">Wealth Quadrant</div>
+        <div id="wealthQuadrant"></div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-card-title">Financial Ratios</div>
+        <div class="ratio-row">
+          <span class="ratio-name">Wealth Ratio <span style="font-size:10px;color:var(--text3)">(Asset−Liab)/(Exp−Saving)</span></span>
+          <span class="ratio-val" id="ratio-wealth">—</span>
+        </div>
+        <div class="ratio-row">
+          <span class="ratio-name">Saving Ratio <span style="font-size:10px;color:var(--text3)">(Nett Inc−Exp+Saving)/Nett Inc</span></span>
+          <span class="ratio-val" id="ratio-saving">—</span>
+        </div>
+        <div class="ratio-row">
+          <span class="ratio-name">Debt Service Ratio <span style="font-size:10px;color:var(--text3)">(Mortgage+Non-Mtg)/Nett Income</span></span>
+          <span class="ratio-val" id="ratio-dsr">—</span>
+        </div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-card-title">Expense Distribution</div>
+        <div class="chart-container"><canvas id="expensePieChart"></canvas></div>
+      </div>
+      <div class="analytics-card full-width">
+        <div class="analytics-card-title">Chart 1 — Cashflow Trend</div>
+        <div class="chart-container-lg"><canvas id="cashflowChart"></canvas></div>
+      </div>
+      <div class="analytics-card full-width">
+        <div class="analytics-card-title">Chart 2 — Networth Trend</div>
+        <div class="chart-container-lg"><canvas id="networthChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/roles.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
