@@ -72,19 +72,42 @@ window.WQAuth = (() => {
     window.WQApp.initApp();
   }
 
-  async function loadPendingApprovals(){
-    const list = document.getElementById('approvalList');
-    list.style.display = 'block';
-    const { data, error } = await WQSupabase.from('profiles').select('id,email,username,role,status').eq('status','pending').order('created_at');
-    if (error) return list.innerHTML = `<div class="auth-msg error">${error.message}</div>`;
-    if (!data?.length) return list.innerHTML = '<div class="auth-msg">No pending approvals.</div>';
-    list.innerHTML = '<strong>Pending approvals</strong>' + data.map(u => `
-      <div class="approval-item">
-        <div><b>${u.username || u.email}</b><br><span style="font-size:12px;color:var(--text2)">${u.email} · ${u.role}</span></div>
-        <div><button class="small-btn approve" onclick="WQAuth.approveUser('${u.id}')">Approve</button>
-        <button class="small-btn reject" onclick="WQAuth.rejectUser('${u.id}')">Reject</button></div>
-      </div>`).join('');
+  async function approveUser(userId){
+  const { error } = await WQSupabase
+    .from('profiles')
+    .update({
+      status: 'approved',
+      approved_at: new Date().toISOString()
+    })
+    .eq('id', userId);
+
+  if (error){
+    alert(error.message);
+    return;
   }
+
+  alert('User approved');
+
+  loadPendingApprovals();
+}
+
+async function rejectUser(userId){
+  const { error } = await WQSupabase
+    .from('profiles')
+    .update({
+      status: 'rejected'
+    })
+    .eq('id', userId);
+
+  if (error){
+    alert(error.message);
+    return;
+  }
+
+  alert('User rejected');
+
+  loadPendingApprovals();
+}
 
   async function approveUser(id){ await WQSupabase.from('profiles').update({ status:'approved', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); await loadUserSelector(); }
   async function rejectUser(id){ await WQSupabase.from('profiles').update({ status:'rejected', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); }
@@ -93,3 +116,9 @@ window.WQAuth = (() => {
   WQSupabase.auth.getUser().then(({data}) => { if (data?.user) hydrate(data.user).catch(e => setMsg(e.message,'error')); });
   return { showAuthMode, submitAuth, loadPendingApprovals, approveUser, rejectUser, switchViewedUser, signOut };
 })();
+
+window.WQAuth = {
+  loadPendingApprovals,
+  approveUser,
+  rejectUser
+};
