@@ -1,4 +1,9 @@
 window.WQAuth = (() => {
+  if (window.WQ_CONFIG_ERROR || !window.WQSupabase) {
+    return {
+      showAuthMode(){}, submitAuth(){}, loadPendingApprovals(){}, approveUser(){}, rejectUser(){}, switchViewedUser(){}, signOut(){}
+    };
+  }
   let mode = 'login';
   let profile = null;
 
@@ -48,13 +53,12 @@ window.WQAuth = (() => {
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('appShell').style.display = 'block';
     document.getElementById('currentUserChip').textContent = `${profile.username} · ${profile.role}`;
+    if (!window.WQApp?.initApp) throw new Error('App failed to initialise. Please refresh the page.');
     if (profile.role === 'superadmin') {
       document.getElementById('adminPanel').classList.add('show');
       await loadUserSelector();
     } else {
       document.getElementById('adminPanel').classList.remove('show');
-      document.getElementById('premiumPanel').classList.add('show');
-      document.getElementById('premiumUserChip').textContent = `${profile.username} · ${profile.role}`;
       await WQStorage.setActiveUser(profile.id);
       window.WQApp.initApp();
     }
@@ -74,76 +78,33 @@ window.WQAuth = (() => {
     window.WQApp.initApp();
   }
 
-  async function approveUser(userId){
-  const { error } = await WQSupabase
-    .from('profiles')
-    .update({
-      status: 'approved',
-      approved_at: new Date().toISOString()
-    })
-    .eq('id', userId);
-
-  if (error){
-    alert(error.message);
-    return;
-  }
-
-  alert('User approved');
-
-  loadPendingApprovals();
-}
-
-async function rejectUser(userId){
-  const { error } = await WQSupabase
-    .from('profiles')
-    .update({
-      status: 'rejected'
-    })
-    .eq('id', userId);
-
-  if (error){
-    alert(error.message);
-    return;
-  }
-
-  alert('User rejected');
-
-  loadPendingApprovals();
-}
-
   async function loadPendingApprovals(){
-    const panel = document.getElementById('approvalPanel');
-    const list  = document.getElementById('approvalList');
-    const { data, error } = await WQSupabase.from('profiles')
-      .select('id, username, email, role')
-      .eq('status', 'pending')
-      .order('created_at');
-    if (error) {
-      list.innerHTML = `<p style="color:var(--red);font-size:12px">${error.message}</p>`;
-    } else if (!data || data.length === 0) {
-      list.innerHTML = '<p style="font-size:12px;color:var(--text2);padding:6px 0;">No pending approvals.</p>';
-    } else {
-      list.innerHTML = data.map(u => `
-        <div class="approval-item">
-          <div>
-            <div style="font-size:13px;font-weight:600">${u.username || u.email}</div>
-            <div style="font-size:11px;color:var(--text2)">${u.email} · ${u.role}</div>
-          </div>
-          <div style="display:flex;gap:6px">
-            <button class="small-btn approve" onclick="WQAuth.approveUser('${u.id}')">Approve</button>
-            <button class="small-btn reject" onclick="WQAuth.rejectUser('${u.id}')">Reject</button>
-          </div>
-        </div>
-      `).join('');
-    }
-    panel.style.display = 'block';
+    const list = document.getElementById('approvalList');
+    list.style.display = 'block';
+    const { data, error } = await WQSupabase.from('profiles').select('id,email,username,role,status').eq('status','pending').order('created_at');
+    if (error) return list.innerHTML = `<div class="auth-msg error">${error.message}</div>`;
+    if (!data?.length) return list.innerHTML = '<div class="auth-msg">No pending approvals.</div>';
+    list.innerHTML = '<strong>Pending approvals</strong>' + data.map(u => `
+      <div class="approval-item">
+        <div><b>${u.username || u.email}</b><br><span style="font-size:12px;color:var(--text2)">${u.email} · ${u.role}</span></div>
+        <div><button class="small-btn approve" onclick="WQAuth.approveUser('${u.id}')">Approve</button>
+        <button class="small-btn reject" onclick="WQAuth.rejectUser('${u.id}')">Reject</button></div>
+      </div>`).join('');
   }
 
-  async function signOut(){
-    await WQSupabase.auth.signOut();
-    location.reload();
-  }
+  async function approveUser(id){ await WQSupabase.from('profiles').update({ status:'approved', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); await loadUserSelector(); }
+  async function rejectUser(id){ await WQSupabase.from('profiles').update({ status:'rejected', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); }
+  async function signOut(){ await WQSupabase.auth.signOut(); location.reload(); }
 
-  WQSupabase.auth.getUser().then(({data}) => { if (data?.user) hydrate(data.user).catch(e => setMsg(e.message,'error')); });
+  WQSupabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') return;
+    if (event === 'TOKEN_REFRESHED') console.info('Supabase session refreshed.');
+    if (event === 'USER_UPDATED' && session?.user) hydrate(session.user).catch(e => setMsg(e.message,'error'));
+  });
+
+  WQSupabase.auth.getSession().then(({data, error}) => {
+    if (error) return setMsg(error.message, 'error');
+    if (data?.session?.user) hydrate(data.session.user).catch(e => setMsg(e.message,'error'));
+  });
   return { showAuthMode, submitAuth, loadPendingApprovals, approveUser, rejectUser, switchViewedUser, signOut };
 })();

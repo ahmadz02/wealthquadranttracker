@@ -244,8 +244,6 @@
 .user-chip { font-size:12px; color:var(--text2); padding:5px 9px; border:1px solid var(--border); border-radius:999px; background:var(--bg); }
 .admin-panel { background:var(--card); border-bottom:1px solid var(--border); padding:12px 16px; display:none; gap:8px; align-items:center; flex-wrap:wrap; }
 .admin-panel.show { display:flex; }
-.premium-panel { background:var(--card); border-bottom:1px solid var(--border); padding:12px 16px; display:none; gap:8px; align-items:center; flex-wrap:wrap; }
-.premium-panel.show { display:flex; }
 .admin-panel select { border:1px solid var(--border); border-radius:7px; padding:7px 9px; min-width:220px; }
 .approval-list { margin-top:16px; border-top:1px solid var(--border); padding-top:12px; }
 .approval-item { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
@@ -253,3 +251,44 @@
 .small-btn.approve { border-color:var(--green); color:var(--green); }
 .small-btn.reject { border-color:var(--red); color:var(--red); }
 #appShell { display:none; }
+
+/* Manual Supabase save controls */
+.month-save-bar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:10px 12px;
+  margin-bottom:10px;
+  box-shadow:var(--shadow);
+}
+.save-data-btn {
+  border:1px solid var(--blue);
+  background:var(--blue);
+  color:#fff;
+  border-radius:8px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.save-data-btn:hover { filter:brightness(0.96); }
+.save-data-btn:disabled { opacity:0.65; cursor:not-allowed; }
+.save-status {
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+  color:var(--text3);
+  font-weight:500;
+}
+.save-status.saving { color:var(--amber); }
+.save-status.success { color:var(--green); }
+.save-status.error { color:var(--red); }
+@media (max-width: 520px) {
+  .month-save-bar { align-items:flex-start; flex-direction:column; }
+  .save-data-btn { width:100%; }
+}
