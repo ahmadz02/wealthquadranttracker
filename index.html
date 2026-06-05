@@ -70,7 +70,7 @@
 <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <div class="app-header">
-  <div class="app-title">💰 Wealth Quadrant Tracker</div>
+  <div class="app-title"><span>💰 Wealth Quadrant Tracker</span><button id="premiumLogoutBtn" class="hdr-btn premium-logout-btn" onclick="WQAuth.signOut()" style="display:none">Logout</button></div>
   <div class="year-control">
     <button class="year-btn" onclick="changeYear(-1)">‹</button>
     <div class="year-display" id="yearDisplay">2025</div>

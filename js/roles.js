@@ -13,6 +13,13 @@ window.WQAuth = (() => {
     el.className = 'auth-msg ' + type;
   }
 
+
+  function updatePremiumLogout(){
+    const btn = document.getElementById('premiumLogoutBtn');
+    if (!btn) return;
+    btn.style.display = (profile && profile.role === 'premium') ? 'inline-flex' : 'none';
+  }
+
   function showAuthMode(next){
     mode = next;
     document.getElementById('loginTab').classList.toggle('active', mode==='login');
@@ -46,6 +53,7 @@ window.WQAuth = (() => {
     const { data, error } = await WQSupabase.from('profiles').select('*').eq('id', user.id).single();
     if (error) throw error;
     profile = data;
+    updatePremiumLogout();
     if (profile.status !== 'approved') {
       await WQSupabase.auth.signOut();
       return setMsg('Your account is pending Superadmin approval.', 'error');
@@ -94,7 +102,7 @@ window.WQAuth = (() => {
 
   async function approveUser(id){ await WQSupabase.from('profiles').update({ status:'approved', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); await loadUserSelector(); }
   async function rejectUser(id){ await WQSupabase.from('profiles').update({ status:'rejected', approved_by: profile.id, approved_at:new Date().toISOString() }).eq('id', id); await loadPendingApprovals(); }
-  async function signOut(){ await WQSupabase.auth.signOut(); location.reload(); }
+  async function signOut(){ updatePremiumLogout(); await WQSupabase.auth.signOut(); location.reload(); }
 
   WQSupabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') return;
