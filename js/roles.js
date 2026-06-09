@@ -1,7 +1,7 @@
 window.WQAuth = (() => {
   if (window.WQ_CONFIG_ERROR || !window.WQSupabase) {
     return {
-      showAuthMode(){}, submitAuth(){}, loadPendingApprovals(){}, approveUser(){}, rejectUser(){}, switchViewedUser(){}, signOut(){}
+      showAuthMode(){}, submitAuth(){}, loadPendingApprovals(){}, togglePendingApprovals(){}, approveUser(){}, rejectUser(){}, switchViewedUser(){}, signOut(){}
     };
   }
 
@@ -141,10 +141,34 @@ window.WQAuth = (() => {
     window.WQApp.initApp();
   }
 
+  function setApprovalBar(count, options = {}){
+    const bar = el('approvalBar');
+    const countEl = el('approvalCount');
+    if (!bar) return;
+
+    const pendingCount = Number(count || 0);
+    if (countEl) countEl.textContent = String(pendingCount);
+
+    if (pendingCount <= 0 && !options.forceShow) {
+      bar.classList.add('collapsed');
+      bar.classList.add('closed');
+      return;
+    }
+
+    bar.classList.remove('collapsed');
+    bar.classList.toggle('closed', !!options.closed);
+  }
+
+  function togglePendingApprovals(){
+    const bar = el('approvalBar');
+    if (!bar || bar.classList.contains('collapsed')) return;
+    bar.classList.toggle('closed');
+  }
+
   async function loadPendingApprovals(){
     const list = el('approvalList');
     if (!list) return;
-    list.style.display = 'block';
+    setApprovalBar(1, { forceShow:true, closed:false });
     list.innerHTML = '<div class="auth-msg">Loading pending approvals...</div>';
 
     const { data, error } = await WQSupabase
@@ -154,16 +178,20 @@ window.WQAuth = (() => {
       .order('created_at');
 
     if (error) {
+      setApprovalBar(1, { forceShow:true, closed:false });
+      if (el('approvalCount')) el('approvalCount').textContent = '!';
       list.innerHTML = `<div class="auth-msg error">${error.message}</div>`;
       return;
     }
 
     if (!data?.length) {
-      list.innerHTML = '<div class="auth-msg">No pending approvals.</div>';
+      list.innerHTML = '';
+      setApprovalBar(0);
       return;
     }
 
-    list.innerHTML = '<strong>Pending approvals</strong>' + data.map(u => `
+    setApprovalBar(data.length, { closed:false });
+    list.innerHTML = data.map(u => `
       <div class="approval-item">
         <div><b>${u.username || u.email}</b><br><span style="font-size:12px;color:var(--text2)">${u.email} · ${u.role}</span></div>
         <div>
@@ -221,5 +249,5 @@ window.WQAuth = (() => {
     if (data?.session?.user) hydrate(data.session.user).catch(e => setMsg(e.message, 'error'));
   });
 
-  return { showAuthMode, submitAuth, loadPendingApprovals, approveUser, rejectUser, switchViewedUser, signOut };
+  return { showAuthMode, submitAuth, loadPendingApprovals, togglePendingApprovals, approveUser, rejectUser, switchViewedUser, signOut };
 })();
