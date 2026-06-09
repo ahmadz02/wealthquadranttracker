@@ -108,6 +108,7 @@ window.WQAuth = (() => {
       el('adminPanel')?.classList.add('show');
       updatePremiumLogout();
       await loadUserSelector();
+      await loadPendingApprovals();
     } else {
       el('adminPanel')?.classList.remove('show');
       await WQStorage.setActiveUser(profile.id);
@@ -148,7 +149,7 @@ window.WQAuth = (() => {
 
     const { data, error } = await WQSupabase
       .from('profiles')
-      .select('id,email,username,role,status')
+      .select('id,email,username,role,status,created_at')
       .eq('status', 'pending')
       .order('created_at');
 
