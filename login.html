@@ -3,85 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Login | Wealth Quadrant Tracker</title>
+
 <link rel="stylesheet" href="css/styles.css">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
 
 <div class="auth-page" id="authPage">
   <div class="auth-card">
-    <div class="auth-title">Wealth Quadrant Tracker Access</div>
-    <div class="auth-sub">Create an account or login. New Superadmin and Premium User accounts require approval by an existing Superadmin.</div>
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="loginTab" onclick="WQAuth.showAuthMode('login')">Login</button>
-      <button class="auth-tab" id="signupTab" onclick="WQAuth.showAuthMode('signup')">Create Account</button>
+
+    <div class="auth-title">
+      Wealth Quadrant Tracker Access
     </div>
+
+    <div class="auth-sub">
+      Create an account or login. New Superadmin and Premium User
+      accounts require approval by an existing Superadmin.
+    </div>
+
+    <div class="auth-tabs">
+      <button
+        class="auth-tab active"
+        id="loginTab"
+        onclick="WQAuth.showAuthMode('login')">
+        Login
+      </button>
+
+      <button
+        class="auth-tab"
+        id="signupTab"
+        onclick="WQAuth.showAuthMode('signup')">
+        Create Account
+      </button>
+    </div>
+
     <div class="auth-field" id="usernameWrap" style="display:none">
       <label>Username</label>
       <input id="authUsername" placeholder="e.g. ali_wq">
     </div>
+
     <div class="auth-field">
       <label>Email</label>
-      <input id="authEmail" type="email" placeholder="you@email.com">
+      <input
+        id="authEmail"
+        type="email"
+        placeholder="you@email.com">
     </div>
+
     <div class="auth-field">
       <label>Password</label>
-      <input id="authPassword" type="password" placeholder="Minimum 6 characters">
+      <input
+        id="authPassword"
+        type="password"
+        placeholder="Minimum 6 characters">
     </div>
+
     <div class="auth-field" id="roleWrap" style="display:none">
       <label>Requested Role</label>
+
       <select id="authRole">
         <option value="premium">Premium User</option>
         <option value="superadmin">Superadmin</option>
       </select>
     </div>
-    <button class="auth-btn" id="authSubmit" onclick="WQAuth.submitAuth()">Login</button>
+
+    <button
+      class="auth-btn"
+      id="authSubmit"
+      onclick="WQAuth.submitAuth()">
+      Login
+    </button>
+
     <div class="auth-msg" id="authMsg"></div>
+
   </div>
 </div>
 
-<!-- Compatibility elements used by the existing authentication controller. -->
+<!-- Compatibility elements required by roles.js -->
 <div id="appShell" style="display:none"></div>
 <div id="adminPanel" style="display:none"></div>
 <div id="premiumPanel" style="display:none"></div>
+
 <span id="currentUserChip" style="display:none"></span>
 <span id="premiumUserChip" style="display:none"></span>
+
 <select id="adminUserSelector" style="display:none"></select>
-<div id="approvalPanel" style="display:none"><div id="approvalList"></div></div>
+
+<div id="approvalPanel" style="display:none">
+  <div id="approvalList"></div>
+</div>
 
 <script src="js/config.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/roles.js"></script>
+
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const authPage = document.getElementById('authPage');
-    const appShell = document.getElementById('appShell');
+document.addEventListener('DOMContentLoaded', function () {
+  const authPage = document.getElementById('authPage');
+  const appShell = document.getElementById('appShell');
 
-    const routeToApp = function () {
-      const authHidden = authPage && getComputedStyle(authPage).display === 'none';
-      const appVisible = appShell && getComputedStyle(appShell).display !== 'none';
-      if (authHidden || appVisible) {
-        window.location.replace('index.html');
-      }
-    };
+  function routeToApp() {
+    const authHidden =
+      authPage &&
+      getComputedStyle(authPage).display === 'none';
 
-    if (authPage) {
-      new MutationObserver(routeToApp).observe(authPage, {
-        attributes: true,
-        attributeFilter: ['style', 'class']
-      });
+    const appVisible =
+      appShell &&
+      getComputedStyle(appShell).display !== 'none';
+
+    if (authHidden || appVisible) {
+      window.location.replace('/index.html');
     }
+  }
 
-    if (appShell) {
-      new MutationObserver(routeToApp).observe(appShell, {
-        attributes: true,
-        attributeFilter: ['style', 'class']
-      });
-    }
+  if (authPage) {
+    new MutationObserver(routeToApp).observe(authPage, {
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+  }
 
-    routeToApp();
-  });
+  if (appShell) {
+    new MutationObserver(routeToApp).observe(appShell, {
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+  }
+
+  routeToApp();
+});
 </script>
+
 </body>
 </html>
