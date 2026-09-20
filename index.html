@@ -20,13 +20,13 @@
     <label style="font-size:12px;color:var(--text2);font-weight:700">Viewing user:</label>
     <select id="adminUserSelector" onchange="WQAuth.switchViewedUser(this.value)"></select>
     <button class="hdr-btn" onclick="WQAuth.loadPendingApprovals()">Pending approvals</button>
-    <button class="hdr-btn reset-year-btn" onclick="WQAuth.signOut()">Logout</button>
+    <button class="hdr-btn reset-year-btn" onclick="logoutAndRedirect()">Logout</button>
   </div>
 
   <!-- PREMIUM USER PANEL -->
   <div class="premium-panel" id="premiumPanel">
     <span class="user-chip" id="premiumUserChip"></span>
-    <button class="hdr-btn reset-year-btn" onclick="WQAuth.signOut()">Logout</button>
+    <button class="hdr-btn reset-year-btn" onclick="logoutAndRedirect()">Logout</button>
   </div>
 
   <!-- APPROVAL PANEL -->
@@ -159,7 +159,19 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/roles.js"></script>
 <script>
+
   // Keep the main application protected when it is opened directly.
+  async function logoutAndRedirect() {
+  try {
+    await WQAuth.signOut();
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    window.location.replace('/login.html');
+  }
+}
+
+
   document.addEventListener('DOMContentLoaded', function () {
     const authPage = document.getElementById('authPage');
     const appShell = document.getElementById('appShell');
@@ -186,14 +198,7 @@
 
     routeToLogin();
 
-    // Preserve the existing sign-out logic, then return to the login page.
-    if (window.WQAuth && typeof WQAuth.signOut === 'function') {
-      const originalSignOut = WQAuth.signOut.bind(WQAuth);
-      WQAuth.signOut = async function () {
-        await originalSignOut();
-        window.location.replace('login.html');
-      };
-    }
+    
   });
 </script>
 <script src="js/storage.js"></script>
