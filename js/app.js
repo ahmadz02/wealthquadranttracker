@@ -6,44 +6,8 @@ let openTabs = [], activeTab = null, analyticsMonth = 0, charts = {}, copyTarget
 // ── STORAGE ──────────────────────────────────────────────
 function storageKey(y,m) { return WQStorage.storageKey(y,m); }
 function getMonthData(y,m) { return WQStorage.getMonthData(y,m, defaultMonthData); }
-function saveMonthData(y,m,d) { return WQStorage.saveMonthData(y,m,d); }
-function removeMonthData(y,m) { return WQStorage.removeMonthData(y,m); }
-function showSaveError(err) {
-  console.error('Save failed:', err);
-  showToast('❌ Save failed: ' + (err?.message || err || 'Please log in again.'));
-}
-function setMonthSaveStatus(month, text, type='') {
-  const el = document.getElementById(`saveStatus-${month}`);
-  if (!el) return;
-  el.textContent = text || '';
-  el.className = 'save-status ' + type;
-}
-function collectPanelMonthData(month) {
-  const data = getMonthData(currentYear, month);
-  const panel = document.getElementById(`panel-${month}`);
-  if (!panel) return data;
-  panel.querySelectorAll('.fin-input').forEach(input => setDeep(data, input.dataset.path, input.value));
-  return data;
-}
-async function saveMonthNow(month, e) {
-  if (e) e.stopPropagation();
-  const btn = e?.currentTarget || document.getElementById(`saveBtn-${month}`);
-  try {
-    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
-    setMonthSaveStatus(month, 'Saving to Supabase...', 'saving');
-    const data = collectPanelMonthData(month);
-    await saveMonthData(currentYear, month, data);
-    setMonthSaveStatus(month, 'Saved to Supabase', 'success');
-    renderMonthGrid();
-    if (document.getElementById('page-analytics').classList.contains('active')) renderAnalytics();
-    showToast(`✅ ${MONTHS[month]} saved to Supabase`);
-  } catch (err) {
-    setMonthSaveStatus(month, 'Save failed', 'error');
-    showSaveError(err);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Data'; }
-  }
-}
+function saveMonthData(y,m,d) { WQStorage.saveMonthData(y,m,d); }
+function removeMonthData(y,m) { WQStorage.removeMonthData(y,m); }
 
 function defaultMonthData() {
   return {
@@ -108,43 +72,37 @@ function openCopyModal(targetMonth, e) {
   document.getElementById('copyModal').classList.remove('hidden');
 }
 function closeCopyModal() { document.getElementById('copyModal').classList.add('hidden'); copyTargetMonth=null; }
-async function confirmCopy(fromMonth,fromYear) {
+function confirmCopy(fromMonth,fromYear) {
   if (copyTargetMonth===null) return;
   const src = JSON.parse(JSON.stringify(getMonthData(fromYear,fromMonth)));
-  try {
-    await saveMonthData(currentYear,copyTargetMonth,src);
-    closeCopyModal();
-    renderMonthGrid();
-    if (openTabs.find(t=>t.month===copyTargetMonth)) refreshPanel(copyTargetMonth);
-    showToast(`✅ Copied ${MONTHS[fromMonth]} ${fromYear} → ${MONTHS[copyTargetMonth]}`);
-  } catch (err) { showSaveError(err); }
+  saveMonthData(currentYear,copyTargetMonth,src);
+  closeCopyModal();
+  renderMonthGrid();
+  if (openTabs.find(t=>t.month===copyTargetMonth)) refreshPanel(copyTargetMonth);
+  showToast(`✅ Copied ${MONTHS[fromMonth]} ${fromYear} → ${MONTHS[copyTargetMonth]}`);
 }
 
 // ── CLEAR FUNCTIONS ───────────────────────────────────────
-async function resetYear() {
+function resetYear() {
   if (!confirm(`Reset ALL data for ${currentYear}? This will clear all 12 months and cannot be undone.`)) return;
-  try {
-    for (let m = 0; m < 12; m++) {
-      await removeMonthData(currentYear, m);
-    }
-    openTabs = []; activeTab = null;
-    document.getElementById('bottomArea').style.display = 'none';
-    renderMonthGrid();
-    showToast(`🗑 All data for ${currentYear} has been reset`);
-  } catch (err) { showSaveError(err); }
+  for (let m = 0; m < 12; m++) {
+    removeMonthData(currentYear, m);
+  }
+  openTabs = []; activeTab = null;
+  document.getElementById('bottomArea').style.display = 'none';
+  renderMonthGrid();
+  showToast(`🗑 All data for ${currentYear} has been reset`);
 }
-async function clearMonth(month, e) {
+function clearMonth(month, e) {
   e.stopPropagation();
   if (!confirm(`Clear ALL data for ${MONTHS[month]} ${currentYear}? This cannot be undone.`)) return;
-  try {
-    await saveMonthData(currentYear, month, defaultMonthData());
-    renderMonthGrid();
-    if (openTabs.find(t=>t.month===month)) refreshPanel(month);
-    showToast(`🗑 ${MONTHS[month]} data cleared`);
-  } catch (err) { showSaveError(err); }
+  saveMonthData(currentYear, month, defaultMonthData());
+  renderMonthGrid();
+  if (openTabs.find(t=>t.month===month)) refreshPanel(month);
+  showToast(`🗑 ${MONTHS[month]} data cleared`);
 }
 
-async function clearSection(section, month, e) {
+function clearSection(section, month, e) {
   e.stopPropagation();
   const labels = { income:'Income', expenses:'Expenses', assets:'Asset', liabilities:'Liability' };
   if (!confirm(`Clear all ${labels[section]} data for ${MONTHS[month]}?`)) return;
@@ -158,12 +116,10 @@ async function clearSection(section, month, e) {
   } else if (section === 'liabilities') {
     data.liabilities = { mortgage:[], nonMortgage:[], others:[] };
   }
-  try {
-    await saveMonthData(currentYear, month, data);
-    renderMonthGrid();
-    if (openTabs.find(t=>t.month===month)) refreshPanel(month);
-    showToast(`🗑 ${labels[section]} data cleared`);
-  } catch (err) { showSaveError(err); }
+  saveMonthData(currentYear, month, data);
+  renderMonthGrid();
+  if (openTabs.find(t=>t.month===month)) refreshPanel(month);
+  showToast(`🗑 ${labels[section]} data cleared`);
 }
 
 
@@ -267,11 +223,7 @@ function renderTabPanels() {
 // ── TAB CONTENT ───────────────────────────────────────────
 function buildTabContent(month) {
   const data=getMonthData(currentYear,month);
-  return `<div class="month-save-bar">
-    <div><strong>${MONTHS[month]} ${currentYear}</strong><span id="saveStatus-${month}" class="save-status">Auto-save enabled. Use Save Data to force sync.</span></div>
-    <button id="saveBtn-${month}" class="save-data-btn" onclick="saveMonthNow(${month}, event)">💾 Save Data</button>
-  </div>`
-       + buildIncomeSection(month,data,calcIncome(data))
+  return buildIncomeSection(month,data,calcIncome(data))
        + buildExpensesSection(month,data,calcExpenses(data))
        + buildAssetsSection(month,data,calcAssets(data))
        + buildLiabilitiesSection(month,data,calcLiabilities(data));
@@ -418,21 +370,17 @@ function dedRow(month,label,path,val) {
 // ── INPUT LISTENERS ───────────────────────────────────────
 function attachInputListeners() {
   document.querySelectorAll('.fin-input').forEach(input=>{
-    input.addEventListener('change',async function(){
+    input.addEventListener('change',function(){
       const month=parseInt(this.dataset.month);
       const data=getMonthData(currentYear,month);
       setDeep(data,this.dataset.path,this.value);
-      setMonthSaveStatus(month, 'Auto-saving...', 'saving');
-      try {
-        await saveMonthData(currentYear,month,data);
-        setMonthSaveStatus(month, 'Saved to Supabase', 'success');
-        const scrollTop=document.getElementById('tabPanelArea').scrollTop;
-        const state=captureCollapseState();
-        renderTabPanels();
-        restoreCollapseState(state);
-        document.getElementById('tabPanelArea').scrollTop=scrollTop;
-        renderMonthGrid();
-      } catch (err) { showSaveError(err); setMonthSaveStatus(month, 'Save failed', 'error'); }
+      saveMonthData(currentYear,month,data);
+      const scrollTop=document.getElementById('tabPanelArea').scrollTop;
+      const state=captureCollapseState();
+      renderTabPanels();
+      restoreCollapseState(state);
+      document.getElementById('tabPanelArea').scrollTop=scrollTop;
+      renderMonthGrid();
     });
   });
 }
@@ -474,20 +422,16 @@ function refreshPanel(month) {
 }
 
 // ── ADD / REMOVE ──────────────────────────────────────────
-async function saveAndRefresh(m,d){
-  try { await saveMonthData(currentYear,m,d); refreshPanel(m); renderMonthGrid(); }
-  catch (err) { showSaveError(err); }
-}
-function addSideIncome(m){const d=getMonthData(currentYear,m);d.income.side.push({label:'',amount:''});saveAndRefresh(m,d);}
-function removeSideIncome(m,i){const d=getMonthData(currentYear,m);d.income.side.splice(i,1);saveAndRefresh(m,d);}
-function addOtherDed(m){const d=getMonthData(currentYear,m);d.income.deductions.other.push({label:'',amount:''});saveAndRefresh(m,d);}
-function removeOtherDed(m,i){const d=getMonthData(currentYear,m);d.income.deductions.other.splice(i,1);saveAndRefresh(m,d);}
-function addExpItem(cat,m){const d=getMonthData(currentYear,m);d.expenses[cat].push({label:'',amount:''});saveAndRefresh(m,d);}
-function removeExpItem(cat,m,i){const d=getMonthData(currentYear,m);d.expenses[cat].splice(i,1);saveAndRefresh(m,d);}
-function addAstItem(cat,m){const d=getMonthData(currentYear,m);d.assets[cat].push({label:'',amount:''});saveAndRefresh(m,d);}
-function removeAstItem(cat,m,i){const d=getMonthData(currentYear,m);d.assets[cat].splice(i,1);saveAndRefresh(m,d);}
-function addLibItem(cat,m){const d=getMonthData(currentYear,m);d.liabilities[cat].push({label:'',amount:''});saveAndRefresh(m,d);}
-function removeLibItem(cat,m,i){const d=getMonthData(currentYear,m);d.liabilities[cat].splice(i,1);saveAndRefresh(m,d);}
+function addSideIncome(m){const d=getMonthData(currentYear,m);d.income.side.push({label:'',amount:''});saveMonthData(currentYear,m,d);refreshPanel(m);}
+function removeSideIncome(m,i){const d=getMonthData(currentYear,m);d.income.side.splice(i,1);saveMonthData(currentYear,m,d);refreshPanel(m);}
+function addOtherDed(m){const d=getMonthData(currentYear,m);d.income.deductions.other.push({label:'',amount:''});saveMonthData(currentYear,m,d);refreshPanel(m);}
+function removeOtherDed(m,i){const d=getMonthData(currentYear,m);d.income.deductions.other.splice(i,1);saveMonthData(currentYear,m,d);refreshPanel(m);}
+function addExpItem(cat,m){const d=getMonthData(currentYear,m);d.expenses[cat].push({label:'',amount:''});saveMonthData(currentYear,m,d);refreshPanel(m);}
+function removeExpItem(cat,m,i){const d=getMonthData(currentYear,m);d.expenses[cat].splice(i,1);saveMonthData(currentYear,m,d);refreshPanel(m);}
+function addAstItem(cat,m){const d=getMonthData(currentYear,m);d.assets[cat].push({label:'',amount:''});saveMonthData(currentYear,m,d);refreshPanel(m);}
+function removeAstItem(cat,m,i){const d=getMonthData(currentYear,m);d.assets[cat].splice(i,1);saveMonthData(currentYear,m,d);refreshPanel(m);}
+function addLibItem(cat,m){const d=getMonthData(currentYear,m);d.liabilities[cat].push({label:'',amount:''});saveMonthData(currentYear,m,d);refreshPanel(m);}
+function removeLibItem(cat,m,i){const d=getMonthData(currentYear,m);d.liabilities[cat].splice(i,1);saveMonthData(currentYear,m,d);refreshPanel(m);}
 
 // ── TOGGLES ───────────────────────────────────────────────
 function toggleSection(bodyId,chevId){const b=document.getElementById(bodyId),c=document.getElementById(chevId);if(!b)return;b.classList.toggle('open');c.classList.toggle('open');}
@@ -644,6 +588,9 @@ function updateAnalyticsMonth(month){
   rw.textContent=wr; rw.className='ratio-val '+(parseFloat(wr)>1?'ratio-good':parseFloat(wr)>0?'ratio-warn':'ratio-bad');
   const rs=document.getElementById('ratio-saving');
   rs.textContent=sr; rs.className='ratio-val '+(parseFloat(sr)>=20?'ratio-good':parseFloat(sr)>=10?'ratio-warn':'ratio-bad');
+  const blr=d1>0?(ast.cash/d1).toFixed(2):'—';
+  const rbl=document.getElementById('ratio-liquidity');
+  rbl.textContent=blr; rbl.className='ratio-val '+(parseFloat(blr)>=3?'ratio-good':parseFloat(blr)>=1?'ratio-warn':'ratio-bad');
   const rd=document.getElementById('ratio-dsr');
   rd.textContent=dsr; rd.className='ratio-val '+(parseFloat(dsr)<=30?'ratio-good':parseFloat(dsr)<=40?'ratio-warn':'ratio-bad');
   renderExpensePie(exp);
